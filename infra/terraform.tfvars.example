@@ -1,0 +1,19 @@
+# Only for running OpenTofu from your own machine; CI uses repository variables instead (docs/CONFIGURATION.md lists them all).
+# Copy to terraform.tfvars (git-ignored) and replace EVERY <your-...> value. scripts/preflight.sh fails while one is left.
+
+# --- required
+account_id     = "<your-32-hex-account-id>"   # Cloudflare dashboard -> Account home -> ... -> Copy account ID
+zone_name      = "<your-domain>"              # a domain that is ACTIVE in that account, for example mydomain.org
+allowed_emails = ["<your-email>"]             # the only people who can pass the login of a private hostname
+
+# --- optional (defaults shown)
+# otp_idp_id        = ""          # set only if One-time PIN already exists in Zero Trust (README, step 3)
+# tunnel_name       = "oke-free"
+# r2_location       = "weur"      # wnam | enam | weur | eeur | apac | oc ; changing it later REPLACES the bucket
+# cluster_hostnames = {
+#   hello = { public = false }    # private: Cloudflare Access login first
+#   blog  = { public = true }     # public: no Cloudflare login (the app must have its own)
+# }
+# enable_failover          = false   # needs a primary origin and a standby (docs/WHAT-YOU-DO.md step 13)
+# failover_status_hostname = ""
+# enable_preview_dns       = false   # wildcard DNS: any name your cluster's Traefik routes becomes reachable (docs/WHAT-YOU-DO.md step 14)

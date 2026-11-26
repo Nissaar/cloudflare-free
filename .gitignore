@@ -1,0 +1,24 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log
+tfplan
+plan.txt
+
+# Local inputs (account id, emails)
+*.tfvars
+!*.tfvars.example
+
+# Never commit credentials
+*.json
+!renovate.json
+!workers/failover/package.json
+*.pem
+*.key
+.env
+.env.*
+node_modules/
+
+__pycache__/

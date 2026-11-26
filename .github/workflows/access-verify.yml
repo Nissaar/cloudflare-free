@@ -1,0 +1,52 @@
+name: access-verify
+
+# Daily proof of the Cloudflare edge, and on demand (Actions -> access-verify -> Run workflow):
+#   edge    every listed host, asked without logging in, must end at the Cloudflare Access login;
+#   origin  every Home host, asked directly at the origin address (skipping Cloudflare), must NOT be served by the app.
+# Script and its unit tests: scripts/verify-edge.py, scripts/test_verify_edge.py. A failure is NOT pushed anywhere: ChatOps (infra channel) polls
+# failed runs. GitHub runner addresses can be challenged by Cloudflare: those hosts show INCONCLUSIVE (not a failure); ChatOps `access verify`
+# runs the same probes from the server.
+#
+# Settings (repository settings -> Secrets and variables -> Actions):
+#   secret or variable  HOME_ORIGIN_IP     the Home server's public IPv4 (optional: without it the origin check is skipped with a notice;
+#                                              a secret is preferred, it is masked in logs)
+#   variable            APP_ACCESS            the same JSON the tofu workflow uses (optional): its labels are added to the hosts
+#   variable            ACCESS_VERIFY_HOSTS   comma list of `label` or `label:home` (optional; the default below is the current set)
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: access-verify
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    # Only in a deployed copy (the quick start sets this variable), never in the unconfigured template.
+    if: vars.CLOUDFLARE_ACCOUNT_ID != '' && vars.ZONE_NAME != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      APP_ACCESS: ${{ vars.APP_ACCESS }}
+      HOME_ORIGIN_IP: ${{ secrets.HOME_ORIGIN_IP || vars.HOME_ORIGIN_IP }}
+      VERIFY_HOSTS: ${{ vars.ACCESS_VERIFY_HOSTS || 'hello' }}
+      ZONE_NAME: ${{ vars.ZONE_NAME }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false # the job never pushes: no token left in .git/config
+      - name: Unit tests of the probe
+        working-directory: scripts
+        run: python3 -m unittest test_verify_edge
+      - name: Edge and origin checks
+        run: |
+          if [ -z "$HOME_ORIGIN_IP" ]; then
+            echo "::notice::HOME_ORIGIN_IP is not set: the origin check is skipped (see docs/WHAT-YOU-DO.md)"
+          fi
+          # the default shell is bash -eo pipefail: a FAIL (exit 1) fails the step even through tee
+          python3 scripts/verify-edge.py --zone "$ZONE_NAME" --hosts "$VERIFY_HOSTS" | tee -a "$GITHUB_STEP_SUMMARY"

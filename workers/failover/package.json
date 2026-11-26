@@ -1,0 +1,9 @@
+{
+  "name": "failover-worker",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker: Home origin first, cluster standby on 5xx/timeout/network error",
+  "scripts": {
+    "test": "node --test"
+  }
+}
